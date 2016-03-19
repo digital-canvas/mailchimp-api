@@ -40,7 +40,8 @@ trait MailchimpTestTrait
         $this->faker  = Factory::create();
     }
 
-    protected function generateList(array $data = []){
+    protected function generateList(array $data = [])
+    {
         $data = array_merge([
             'name'                  => $this->faker->text(20),
             'contact'               => [
@@ -66,6 +67,7 @@ trait MailchimpTestTrait
             'email_type_option'     => false,
             'visibility'            => 'pub',
         ], $data);
+
         return $data;
     }
 
@@ -78,18 +80,24 @@ trait MailchimpTestTrait
     {
         $data = $this->generateList($data);
 
-        $list = $this->api->lists->create($data);
+        return $this->api->lists->create($data);
 
         return $list;
     }
 
-    public function generateMember(array $data = [])
+    /**
+     * @param $listid
+     * @param null $email
+     * @param string $status
+     *
+     * @return array
+     */
+    public function haveMember($listid, $email = null, $status = 'subscribed')
     {
+        if ( ! $email) {
+            $email = $this->faker->email;
+        }
 
-    }
-
-    public function haveMember()
-    {
-
+        return $this->api->members->create($listid, $email, $status);
     }
 }

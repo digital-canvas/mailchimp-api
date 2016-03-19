@@ -20,7 +20,7 @@ class MemberTest extends PHPUnit_Framework_TestCase
     {
         $list     = $this->haveList();
         $listid   = $list['id'];
-        $email    = "jondigitalcanvas+" . time() . "@gmail.com";
+        $email    = $this->faker->freeEmail;
         $memberid = md5(strtolower($email));
         try {
             $member = $this->api->members->create($listid, $email);
@@ -28,12 +28,107 @@ class MemberTest extends PHPUnit_Framework_TestCase
             $this->assertEquals('subscribed', $member['status']);
             $this->assertEquals($memberid, $member['id']);
         } catch (\Exception $e) {
-            $this->fail('Failed to create member');
+            $response = array_pop($this->requests)['response'];
+            $error    = json_decode($response->getBody()->getContents(), true);
+            $this->fail($error['detail']);
         } finally {
-            $this->api->lists->delete($listid);
+            if ($list['id']) {
+                $this->api->lists->delete($list['id']);
+            }
+
         }
+    }
 
+    /**
+     * @test
+     */
+    public function list_subscribers()
+    {
+        $list = $this->haveList();
+        try {
+            $this->haveMember($list['id']);
+            $this->haveMember($list['id']);
+            $members = $this->api->members->getList($list['id']);
+            $this->assertInstanceOf('DigitalCanvas\Mailchimp\Collection\PaginatedCollection', $members);
+            $this->assertEquals(2, count($members));
+            $this->assertEquals(2, $members->getTotalItems());
+        } catch (\Exception $e) {
+            $response = array_pop($this->requests)['response'];
+            $error    = json_decode($response->getBody()->getContents(), true);
+            $this->fail($error['detail']);
+        } finally {
+            if ($list['id']) {
+                $this->api->lists->delete($list['id']);
+            }
+        }
+    }
 
+    /**
+     * @test
+     */
+    public function get_member_details()
+    {
+        $email = $this->faker->freeEmail;
+        $hash  = md5(strtolower($email));
+        $list  = $this->haveList();
+        try {
+            $this->haveMember($list['id'], $email);
+            $member = $this->api->members->getDetails($list['id'], $hash);
+            $this->assertEquals($email, $member['email_address']);
+        } catch (\Exception $e) {
+            $response = array_pop($this->requests)['response'];
+            $error    = json_decode($response->getBody()->getContents(), true);
+            $this->fail($error['detail']);
+        } finally {
+            if ($list['id']) {
+                $this->api->lists->delete($list['id']);
+            }
+        }
+    }
+
+    /**
+     * @test
+     */
+    public function get_member_details_by_email()
+    {
+        $email = $this->faker->freeEmail;
+        $list  = $this->haveList();
+        try {
+            $this->haveMember($list['id'], $email);
+            $member = $this->api->members->getByEmail($list['id'], $email);
+            $this->assertEquals($email, $member['email_address']);
+        } catch (\Exception $e) {
+            $response = array_pop($this->requests)['response'];
+            $error    = json_decode($response->getBody()->getContents(), true);
+            $this->fail($error['detail']);
+        } finally {
+            if ($list['id']) {
+                $this->api->lists->delete($list['id']);
+            }
+        }
+    }
+
+    /**
+     * @test
+     */
+    public function unsubscribe_from_list()
+    {
+        $email = $this->faker->freeEmail;
+        $list  = $this->haveList();
+        try {
+            $member = $this->haveMember($list['id'], $email, 'subscribed');
+            $result = $this->api->members->unsubscribe($list['id'], $email);
+            $this->assertEquals($member['email_address'], $result['email_address']);
+            $this->assertEquals('unsubscribed', $result['status']);
+        } catch (\Exception $e) {
+            $response = array_pop($this->requests)['response'];
+            $error    = json_decode($response->getBody()->getContents(), true);
+            $this->fail($error['detail']);
+        } finally {
+            if ($list['id']) {
+                $this->api->lists->delete($list['id']);
+            }
+        }
     }
 
 
