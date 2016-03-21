@@ -131,5 +131,56 @@ class MemberTest extends PHPUnit_Framework_TestCase
         }
     }
 
+    /**
+     * @test
+     */
+    public function resubscribe_to_list()
+    {
+        $email = $this->faker->freeEmail;
+        $list  = $this->haveList();
+        try {
+            $member = $this->haveMember($list['id'], $email, 'unsubscribed');
+            $this->assertEquals('unsubscribed', $member['status']);
+            $result = $this->api->members->resubscribe($list['id'], $email);
+            $this->assertEquals($member['email_address'], $result['email_address']);
+            $this->assertEquals('subscribed', $result['status']);
+        } catch (\Exception $e) {
+            $response = array_pop($this->requests)['response'];
+            $error    = json_decode($response->getBody()->getContents(), true);
+            $this->fail($error['detail']);
+        } finally {
+            if ($list['id']) {
+                $this->api->lists->delete($list['id']);
+            }
+        }
+    }
 
+    /**
+     * @test
+     */
+    public function update_member_details()
+    {
+        $email = $this->faker->freeEmail;
+        $list  = $this->haveList();
+        $updates = [
+            'status' => 'unsubscribed',
+            'email_type' => 'text',
+        ];
+        try {
+            $member = $this->haveMember($list['id'], $email, 'subscribed');
+            $this->assertEquals('subscribed', $member['status']);
+            $this->assertEquals('html', $member['email_type']);
+            $result = $this->api->members->update($list['id'], $email, $updates);
+            $this->assertEquals($updates['status'], $result['status']);
+            $this->assertEquals($updates['email_type'], $result['email_type']);
+        } catch (\Exception $e) {
+            $response = array_pop($this->requests)['response'];
+            $error    = json_decode($response->getBody()->getContents(), true);
+            $this->fail($error['detail']);
+        } finally {
+            if ($list['id']) {
+                $this->api->lists->delete($list['id']);
+            }
+        }
+    }
 }

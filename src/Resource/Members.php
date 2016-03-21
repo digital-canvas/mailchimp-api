@@ -11,6 +11,8 @@ use DigitalCanvas\Mailchimp\Collection\PaginatedCollection;
 class Members extends AbstractResource
 {
     /**
+     * Returns a paginated list of members
+     *
      * @param array $filter
      *
      * @return PaginatedCollection
@@ -27,6 +29,8 @@ class Members extends AbstractResource
     }
 
     /**
+     * Returns a member by email address
+     *
      * @param string $list_id
      * @param string $email
      *
@@ -40,6 +44,8 @@ class Members extends AbstractResource
     }
 
     /**
+     * Returns details for a single member
+     *
      * @param string $list_id
      * @param string $subscriber_hash md5 hash of lowercase email address
      *
@@ -56,6 +62,8 @@ class Members extends AbstractResource
     }
 
     /**
+     * Creates a new member
+     *
      * @param string $list_id
      * @param string $email
      * @param string $status
@@ -80,6 +88,8 @@ class Members extends AbstractResource
     }
 
     /**
+     * Unsubscribes a member from a list
+     *
      * @param string $list_id
      * @param string $email
      *
@@ -94,6 +104,51 @@ class Members extends AbstractResource
             'status' => 'unsubscribed'
         ];
         $response        = $this->api->sendRequest($path, $method, $options);
+
+        $member = json_decode($response->getBody()->getContents(), true);
+
+        return $member;
+    }
+
+    /**
+     * Re-subscribe a previously unsubscribed member
+     *
+     * @param string $list_id
+     * @param string $email
+     *
+     * @return array
+     */
+    public function resubscribe($list_id, $email)
+    {
+        $subscriber_hash = $this->getSubscriberHash($email);
+        $method          = 'PATCH';
+        $path            = "lists/{$list_id}/members/{$subscriber_hash}";
+        $options         = [
+            'status' => 'subscribed'
+        ];
+        $response        = $this->api->sendRequest($path, $method, $options);
+
+        $member = json_decode($response->getBody()->getContents(), true);
+
+        return $member;
+    }
+
+    /**
+     * Updates a member
+     *
+     * @param string $list_id
+     * @param string $email
+     * @param array $options
+     *
+     * @return array
+     */
+    public function update($list_id, $email, array $options = [])
+    {
+        $subscriber_hash = $this->getSubscriberHash($email);
+        $method          = 'PATCH';
+        $path            = "lists/{$list_id}/members/{$subscriber_hash}";
+
+        $response = $this->api->sendRequest($path, $method, $options);
 
         $member = json_decode($response->getBody()->getContents(), true);
 
